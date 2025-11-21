@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let answers = {};
     let stepHistory = [1];
-    let totalSteps = 5; // Máximo de passos possíveis
+    let totalSteps = 4; 
 
     // NAVEGAÇÃO
     function showStep(stepId, direction = 'forward') {
@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btnBack.classList.remove('animate-fade-in');
         }
 
-        // Lógica simplificada da barra de progresso
+        // Lógica da barra de progresso (3a, 3b, 3c, 3d contam como 75%)
         let progressIndex = 0;
         if (stepToGo === '1') progressIndex = 1;
         else if (stepToGo === '2') progressIndex = 2;
@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
         stepHistory.pop();
         const previousStepId = stepHistory[stepHistory.length - 1];
         const questionId = getQuestionIdFromStep(previousStepId);
-        delete answers[questionId];
+        if (questionId) delete answers[questionId];
         const prevScreen = document.querySelector(`[data-step="${previousStepId}"]`);
         if (prevScreen) {
              prevScreen.querySelectorAll('.radio-option.selected').forEach(btn => btn.classList.remove('selected'));
@@ -104,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // CAMPO DE TEXTO (MEDO)
+    // CAMPO DE TEXTO (MEDO - 3b)
     const inputMedo = document.getElementById('input-medo');
     const btnNextMedo = document.getElementById('btn-next-medo');
     if(inputMedo && btnNextMedo) {
@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // CAMPO DE TEXTO (GERAL - Para quem não é CLT)
+    // CAMPO DE TEXTO (GERAL - 3c)
     const inputGeral = document.getElementById('input-desafio-geral');
     const btnNextGeral = document.getElementById('btn-next-geral');
     if(inputGeral && btnNextGeral) {
@@ -128,6 +128,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         btnNextGeral.addEventListener('click', () => {
             answers['desafio_geral'] = inputGeral.value;
+            showStep('4', 'forward');
+        });
+    }
+
+    // CAMPO DE TEXTO (NEGÓCIO - 3d - NOVO)
+    const inputNegocio = document.getElementById('input-negocio');
+    const btnNextNegocio = document.getElementById('btn-next-negocio');
+    if(inputNegocio && btnNextNegocio) {
+        inputNegocio.addEventListener('input', () => { btnNextNegocio.disabled = inputNegocio.value.trim() === ""; });
+        inputNegocio.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!btnNextNegocio.disabled) btnNextNegocio.click(); }
+        });
+        btnNextNegocio.addEventListener('click', () => {
+            answers['melhoria_negocio'] = inputNegocio.value;
             showStep('4', 'forward');
         });
     }
@@ -143,7 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
             progressBar.style.width = '100%';
         }, 200);
 
-        // Salva na nova tabela V3
+        // Salva na tabela V3
         try {
             const { error } = await supabaseClient.from('pesquisa_landing_page_v3').insert([answers]);
             if (error) throw error;
@@ -172,17 +186,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const { idade, trabalho, decisao_final } = answers;
         let resultId;
 
-        // 1. Quem está 100% decidido vai para o grupo melhor
+        // 1. 100% Decidido -> Grupo Melhor
         if (decisao_final === 'totalmente-decidido') {
             resultId = 'result-vip_networking';
         } 
-        // 2. Quem está travado: Verifica perfil
+        // 2. Travado -> Verifica Perfil
         else { 
-             // Perfil Jovem/Trabalhador -> Grupo Melhor
+             // Perfil Jovem/Trabalhador OU Autonomo -> Grupo Melhor
              if (['15-17', '17-20', 'mais-20'].includes(idade) && ['jovem-aprendiz', 'clt', 'autonomo'].includes(trabalho)) {
                 resultId = 'result-vip_networking';
              } else {
-                 // Outros -> Grupo Geral
+                 // Outros -> Grupo Normal
                 resultId = 'result-geral';
              }
         }
@@ -207,6 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (step === '3a') return 'tem_medo_trabalho';
         if (step === '3b') return 'descricao_medo';
         if (step === '3c') return 'desafio_geral';
+        if (step === '3d') return 'melhoria_negocio'; // Nova
         if (step === '4') return 'decisao_final';
         return null;
     }
